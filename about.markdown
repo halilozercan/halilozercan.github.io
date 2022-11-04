@@ -4,7 +4,6 @@ title: About
 permalink: /about/
 ---
 
-Android Engineer at Opsgenie, Atlassian.
+Android Text at Google.
 
-I like to hack things, try new frameworks, learn interesting concepts.
-
+I ❤️ Jetpack Compose

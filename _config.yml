@@ -34,6 +34,10 @@ plugins:
 social_links:
   twitter: halilozercan
   github: halilozercan
+  mastodon:
+    - 
+      username: halil
+      instance: androiddev.social
 
 markdown: kramdown
 permalink: /:year/:title:output_ext

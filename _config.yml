@@ -41,6 +41,7 @@ social_links:
 
 markdown: kramdown
 permalink: /:year/:title:output_ext
+include: [".well-known"]
 
 # Exclude from processing.
 # The following items will not be processed, by default.

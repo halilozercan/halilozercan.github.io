@@ -1,0 +1,9 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.halilibo.hunty",
+    "sha256_cert_fingerprints":
+    ["F3:85:E9:B7:23:ED:EE:8C:21:B7:97:D4:27:68:73:73:06:45:16:DC:D9:10:79:BE:AA:40:BD:2F:6E:0A:1F:29"]
+  }
+}]

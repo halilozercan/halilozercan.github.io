@@ -71,7 +71,7 @@ Some of these properties violate the linearity of text, which affects how humans
 
 ### Scale vs Text Size
 
-Scaling text on screen can be achieved in two different ways in Jetpack Compose. The first one is using `graphicsLayer` `scaleX` and `scaleY` parameters. 
+Scaling text on screen can be achieved in two different ways in Jetpack Compose. The first one is using `graphicsLayer`, `scaleX`, and `scaleY` parameters. 
 
 Most developers will probably go for this solution since  animating a float comes easy and intuitive, and also googling for scaling animations in Jetpack Compose usually suggests this method whether it is for text or any layout node. 
 

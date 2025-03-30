@@ -13,7 +13,7 @@ Around 2 years ago, Wear OS team had a problem with their new Picker composable,
   <p style="font-size:12px;text-align:center;">If you cannot figure out what's wrong with the above recording, focus on either top or bottom row, then take a closer look at number zero.</p>
 </p>
 
-Wear OS team weren't the first ones to run into this issue on an Android based platform, nor they would be the last. My initial investigation into this problem led me down a path of graphics, text, and Android's history of these two domains. 
+Wear OS team weren't the first ones to run into this issue on an Android based platform, nor would they be the last. My initial investigation into this problem led me down a path of graphics, text, and Android's history of these two domains. 
 
 Eventually my investigation turned into an internal _research_ document that I've been referencing regularly for the past 2 years. At the time, this work also paved the way for one dedicated API ([TextMotion](https://developer.android.com/develop/ui/compose/animation/quick-guide#animate-text-scale)) and sped up the development of another ([CompositingStrategy](https://developer.android.com/develop/ui/compose/graphics/draw/modifiers#compositing-strategy)). 
 
@@ -24,7 +24,7 @@ This post is just the publication of that document without much editorial input.
 
 ## Acknowledgements
 
-Usually the acknowledgements section comes at the end of articles or papers. This has never made sense to me. Especially, right now. Most of my research was practice as you will in this post but my curiosity was lit by [this document](https://docs.google.com/document/d/1wpzgGMqXgit6FBVaO76epnnFC_rQPdVKswrDQWyqO1M/preview?tab=t.0#heading=h.bjsw53t8jqke), written by Behdad Esfahbod, the author of HarfBuzz. 
+Usually the acknowledgements section comes at the end of articles or papers. This has never made sense to me. Especially, right now. Most of my research was practice as you will see in this post but my curiosity was lit by [this document](https://docs.google.com/document/d/1wpzgGMqXgit6FBVaO76epnnFC_rQPdVKswrDQWyqO1M/preview?tab=t.0#heading=h.bjsw53t8jqke), written by Behdad Esfahbod, the author of HarfBuzz. 
 
 If you have time and are hungry for more in-depth exploration of text shaping and rendering, albeit from 2012's perspective, please read the whole thing. The fact that it is public is what also encouraged me to make my own work public.
 
@@ -36,7 +36,7 @@ Now, let's get into it.
 
 **Problem**: Compose Text looks jittery when a graphicsLayer scale animation is applied on it. 
 
-This problem is not isolated to Compose though. Same problem was first reported for TextView in [an internal issue link]. [A teammate] first proposed to use `LINEAR_TEXT_FLAG`, maybe enabling it by default on Compose. Later, WearOS picker composable which scales the text when it’s scrolled vertically brought the issue forward. The problem looked to be reproducible upon closer inspection in Compose UI on a phone since Compose for WearOS (CfW) does not have a separate text layout/render engine. 
+This problem is not isolated to Compose though. Same problem was first reported for TextView in [an internal issue link]. [A teammate] first proposed to use `LINEAR_TEXT_FLAG`, maybe enabling it by default on Compose. Later, Wear OS picker composable which scales the text when it’s scrolled vertically brought the issue forward. The problem looked to be reproducible upon closer inspection in Compose UI on a phone since Compose for Wear OS does not have a separate text layout/render engine. 
 
 Please take a look at the following videos to see the difference between jittery and smooth animation.
 
@@ -53,41 +53,41 @@ Please take a look at the following videos to see the difference between jittery
 
 ## Background
 
-Text scale animations are suspect to jittery font issues if right flags and configurations are not applied on the text paint. 
+Text scale animations are susceptible to jittery font issues if the right flags and configurations are not applied on the text paint. 
 
 There are many properties regarding fonts, graphics layering, text positioning, anti-aliasing, etc. that affect the final rendered text on the screen. This issue, like many rendering issues in Text, stems from how rasterization is done and scaled. 
 
-Glyphs get placed at whole or fractional pixel positions according to font metrics and mentioned paint features. Scaling gets applied on an already finalized text layout, which brings us to the root issue that’s linearity of text.  
+Glyphs get placed at whole or fractional pixel positions according to font metrics and the mentioned paint features. Scaling gets applied on an already finalized text layout, which brings us to the root issue: the linearity of text.  
 
 I’ll just quote Behdad because he is one of the best people who can explain linearity vs non-linearity.
 
-> When it comes to layout, there are two opposite directions you can go: linear, and non-linear.  Glyph positions produced by a linear layout function can be transformed by an affine (or even projective, if you are careful) transformation, and they would result in exactly what would have had resulted if the font scale matrix was transformed by such transformation before layout.  Ie. linearly laying out a paragraph at 12pt to a width of 4in will result in the exact same look and line breaks that results from setting it at 24pt to a width of 8in.  That’s a very nice property, because it means that you can zoom, rotate, translate, shear, even project the layout results freely.
+> When it comes to layout, there are two opposite directions you can go: linear, and non-linear.  Glyph positions produced by a linear layout function can be transformed by an affine (or even projective, if you are careful) transformation, and they would result in exactly what would have had resulted if the font scale matrix was transformed by such transformation before layout.  i.e. linearly laying out a paragraph at 12pt to a width of 4in will result in the exact same look and line breaks that results from setting it at 24pt to a width of 8in.  That’s a very nice property, because it means that you can zoom, rotate, translate, shear, even project the layout results freely.
 
 > Non-linear layout would be different.  For example, you may decide (for many legitimate reasons), that at 10px size, the  glyph for letter ‘i’ should take 2 pixels of space (one column of black stem, one column of white space after).  But the same glyph, at size 20px may take only 3 pixels (one full black stem in the middle column, and two very light gray columns on the sides).  That’s clearly non-linear, because although the font size was increased 100%, the glyph width only increased 50%.  Note that this is not a matter of local error.  If you consider a string of i’s (“iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii”), the whole string is now only 50% wider than the one “half the size”.  Line breaks will be calculated differently, page breaks will be calculated differently, and the document may end up consuming a different number of pages.  In short, with non-linear layout all bets are off.
 
-Basically, text rendering is an analog process that happens on a theoretical canvas. Majority of font metrics are subject to be calculated at fractional values when the canvas is arbitrarily scaled. Hence, Skia and Android Paint classes provide flags for subpixel positioning, [line metrics](https://freetype.org/freetype2/docs/glyphs/glyphs-3.html), baseline snapping(Android excluded, only Skia) and [font hinting](https://en.wikipedia.org/wiki/Font_hinting) that decides whether to use whole or rational numbers to place glyphs on this theoretical canvas. 
+Basically, text rendering is an analog process that happens on a theoretical canvas. The majority of font metrics are subject to be calculated at fractional values when the canvas is arbitrarily scaled. Hence, Skia and Android Paint classes provide flags for subpixel positioning, [line metrics](https://freetype.org/freetype2/docs/glyphs/glyphs-3.html), baseline snapping(Android excluded, only Skia) and [font hinting](https://en.wikipedia.org/wiki/Font_hinting) that decide whether to use whole or rational numbers to place glyphs on this theoretical canvas. 
 
-Some of these properties violate the linearity of text, which affects how humans perceive scaling animation. Videos that were given in the Problem section demonstrate exactly how uneven visuals are produced by just toggling `SUBPIXEL_TEXT_FLAG` in Compose.
+Some of these properties violate the linearity of text, which affects how humans perceive scaling animation. The videos that were given in the Problem section demonstrate exactly how uneven visuals are produced by just toggling `SUBPIXEL_TEXT_FLAG` in Compose.
 
 ### Scale vs Text Size
 
-Scaling text on screen can be achieved via two different ways in Jetpack Compose. First one is using `graphicsLayer` `scaleX` and `scaleY` parameters. 
+Scaling text on screen can be achieved in two different ways in Jetpack Compose. The first one is using `graphicsLayer` `scaleX` and `scaleY` parameters. 
 
-Most developers will probably go for this solution since  animating a float comes easy and intuitive, and also googling for scaling animations in Jetpack Compose usually suggests this method whether it be for text or any layout node. 
+Most developers will probably go for this solution since  animating a float comes easy and intuitive, and also googling for scaling animations in Jetpack Compose usually suggests this method whether it is for text or any layout node. 
 
-Second method is scaling the `fontSize` parameter by converting an animating float value into `sp`. This might come unintuitive to developers, not to mention it is more risky to mess with fractional font sizes, e.g. Lollipop onwards until Pie had fractional font sizes disabled. 
+The second method is scaling the `fontSize` parameter by converting an animating float value into `sp`. This might seem unintuitive to developers, not to mention it is more risky to mess with fractional font sizes, e.g., Lollipop onwards until Pie had fractional font sizes disabled. 
 
 ### Flags and Hinting
 
-`LINEAR_TEXT_FLAG`, `SUBPIXEL_TEXT_FLAG`, and `setHinting` in Paint class directly affects how glyphs are shaped, placed, and positioned on a line. 
+`LINEAR_TEXT_FLAG`, `SUBPIXEL_TEXT_FLAG`, and `setHinting` in Paint class directly affect how glyphs are shaped, placed, and positioned on a line. 
 
-Their effect becomes more negligible as DPI increases. However, text animations using either `fontSize` or `graphicsLayer` scaling makes it easier to notice the difference even in high DPI screens due to human factor. 
+Their effect becomes more negligible as DPI increases. However, text animations using either `fontSize` or `graphicsLayer` scaling make it easier to notice the difference even in high DPI screens due to the human factor. 
 
 Below, all static images are screenshots from an ldpi (3.3” 240x420) device running on Android API 33(T).
 
 #### Hinting
 
-From Wikipedia;
+From Wikipedia:
 
 > Font hinting (also known as instructing) is the use of mathematical instructions to adjust the display of an outline font so that it lines up with a rasterized grid. At low screen resolutions, hinting is critical for producing clear, legible text.
 
@@ -149,7 +149,7 @@ Only toggling hinting does not provide obvious benefits. In both cases we still 
 <td>
 <b>API 33 - fontSize scaling</b>
 <p>
-The other method of animating the text is scaling the font size itself. This time hinting starts to show its face. Disabling hinting produces a better looking animation albeit not perfect. This indicates that hinting is a non-linear property.
+The other method of animating the text is scaling the font size itself. This time hinting starts to show its face. Disabling hinting produces a better looking animation, albeit not perfect. This indicates that hinting is a non-linear property.
 </p>
 </td>
 </tr>
@@ -167,9 +167,9 @@ From its [documentation](https://developer.android.com/reference/android/graphic
 
 > `SUBPIXEL_TEXT_FLAG` should be used in conjunction with this flag to prevent glyph positions from snapping to whole pixel values as scale factor is adjusted.
 
-Although this description might require few readings, it’s actually a super concise and accurate way of explaining what `LINEAR_TEXT_FLAG` enables which is introducing linearity to text rendering. Then the question becomes what does linearity mean in the context of text. I’m again going to quote from Behdad
+Although this description might require a few readings, it’s actually a super concise and accurate way of explaining what `LINEAR_TEXT_FLAG` enables which is introducing linearity to text rendering. Then the question becomes what does linearity mean in the context of text. I’m again going to quote from Behdad
 
-> When it comes to layout, there are two opposite directions you can go: linear, and non-linear.  Glyph positions produced by a linear layout function can be transformed by an affine transformation, and they would result in exactly what would have had resulted if the font scale matrix was transformed by such transformation before layout.  Ie. linearly laying out a paragraph at 12pt to a width of 4in will result in the exact same look and line breaks that results from setting it at 24pt to a width of 8in.  That’s a very nice property, because it means that you can zoom, rotate, translate, shear, even project the layout results freely.
+> When it comes to layout, there are two opposite directions you can go: linear, and non-linear.  Glyph positions produced by a linear layout function can be transformed by an affine transformation, and they would result in exactly what would have had resulted if the font scale matrix was transformed by such transformation before layout.  i.e. linearly laying out a paragraph at 12pt to a width of 4in will result in the exact same look and line breaks that results from setting it at 24pt to a width of 8in.  That’s a very nice property, because it means that you can zoom, rotate, translate, shear, even project the layout results freely.
 
 Linearity guarantees a constant text layout in the face of matrix transformations. Another thing we need to know is that metrics hinting introduces non-linearity to text layout. Therefore we understand why font hinting is disabled when `LINEAR_TEXT_FLAG` is activated. Let’s look at the following table that shows the difference between linear text and font hinting at different font sizes;
 
@@ -226,7 +226,7 @@ Second, subpixel text positioning increases the spatial resolution by rasterizin
   </tr>
 </table>
 
-Also, subpixel positioning not only changes where glyphs are positioned, but also affects how they are anti-aliased. The screenshot on the left has the same `i` glyph positioned varyingly on the same line. Important part is that all `i` s look the same. However, `i`s are rendered differently from each other on the right screenshot when subpixel positioning is turned on.
+Also, subpixel positioning not only changes where glyphs are positioned, but also affects how they are anti-aliased. The screenshot on the left has the same `i` glyph positioned variously on the same line. The important part is that all `i`s look the same. However, `i`s are rendered differently from each other on the right screenshot when subpixel positioning is turned on.
 
 Another point of discussion comes from Behdad’s High-DPI Subpixel Text Positioning document;
 
@@ -236,7 +236,7 @@ Subpixel text positioning defeats the purpose of metrics hinting because it enab
 
 #### DPI’s effect on Subpixels
 
-Not surprisingly, subpixel positioning’s effect diminishes as screen DPI increases. The reason is quite clear. Instead of helping antialiasing to work out the grayscale intensity on border pixels of glyphs by supplying fractional values, high DPI screens simply provide much more pixels for an area to eliminate the need for fractional values. 0.25 pixels basically becomes a whole pixel in high DPI. Below table shows the text rendering difference between various DPI configs;
+Not surprisingly, subpixel positioning’s effect diminishes as screen DPI increases. The reason is quite clear. Instead of helping antialiasing to work out the grayscale intensity on border pixels of glyphs by supplying fractional values, high DPI screens simply provide much more pixels for an area to eliminate the need for fractional values. 0.25 pixels basically becomes a whole pixel in high DPI. The table below shows the text rendering difference between various DPI configs;
 
 <table>
   <tr>
@@ -296,7 +296,7 @@ We have talked about 3 levers that configure how glyphs are placed and rendered 
     <td><p>Hinting (Default behavior)</p><p>setHinting(true)</p></td>
     <td><img src="/assets/images/jittery-text/image7.gif" style="width:100%"/></td>
     <td><img src="/assets/images/jittery-text/image41.gif" style="width:100%"/></td>
-    <td>GraphicsLayer does not change much compared to the “Nothing” option. Font size scaling gets even much worse. Hinting is clearly non-linear.</td>
+    <td>GraphicsLayer does not change much compared to the “Nothing” option. Font size scaling gets  much worse. Hinting is clearly non-linear.</td>
   </tr>
   <tr>
     <td><p>Linear</p><p>LINEAR_TEXT_FLAG</p></td>
@@ -336,7 +336,7 @@ modifier = Modifier
     }
 ```
 
-An offscreen compositing layer has been used to apply alpha to Views/RenderNodes since Marshmallow(API 23). Compose also adopts this technique of applying alpha at GraphicsLayerScope. Using a compositing layer is carrying all the information from screen onto an offscreen layer to do any operation like blend and then carrying the result back to the screen as explained [here](https://developer.android.com/reference/android/view/View#hasOverlappingRendering()).
+An offscreen compositing layer has been used to apply alpha to Views/RenderNodes since Marshmallow(API 23). Compose also adopts this technique of applying alpha at GraphicsLayerScope. Using a compositing layer involves carrying all the information from the screen onto an offscreen layer, doing any operation like blending, and then carrying the result back to the screen as explained [here](https://developer.android.com/reference/android/view/View#hasOverlappingRendering()).
 
 How does this affect text rendering? If text is rendered on screen, then carried to a compositing layer to do scaling, text will be scaled just like an image.
 
@@ -432,7 +432,7 @@ Good thing about this solution is that it doesn't need to rasterize the text ont
 
 We ended up shipping both solutions. To be fair, `CompositingStrategy` had many more other reasons to exist besides solving this peculiar problem. On the other hand, `TextMotion` was a direct solution to the jittery text animation.
 
-I published this document in the hopes of somebody finding Text layout and rendering interesting and would like a dive into its history on Android. There isn't much fascinating knowledge being shared here. 
+I published this document in the hopes that somebody finds Text layout and rendering interesting and would like to dive into its history on Android. There isn't much fascinating knowledge being shared here. 
 
 My main purpose was to inspire and let the reader realize and appreciate the work that goes into **Text**.
 

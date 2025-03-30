@@ -67,7 +67,7 @@ I’ll just quote Behdad because he is one of the best people who can explain li
 
 Basically, text rendering is an analog process that happens on a theoretical canvas. The majority of font metrics are subject to be calculated at fractional values when the canvas is arbitrarily scaled. Hence, Skia and Android Paint classes provide flags for subpixel positioning, [line metrics](https://freetype.org/freetype2/docs/glyphs/glyphs-3.html), baseline snapping(Android excluded, only Skia) and [font hinting](https://en.wikipedia.org/wiki/Font_hinting) that decide whether to use whole or rational numbers to place glyphs on this theoretical canvas. 
 
-Some of these properties violate the linearity of text, which affects how humans perceive scaling animation. The videos that were given in the Problem section demonstrate exactly how uneven visuals are produced by just toggling `SUBPIXEL_TEXT_FLAG` in Compose.
+Some of these properties violate the linearity of text, which affects how humans perceive scaling animation. 
 
 ### Scale vs Text Size
 

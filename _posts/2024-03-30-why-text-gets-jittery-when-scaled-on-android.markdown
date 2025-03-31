@@ -443,3 +443,5 @@ My main purpose was to inspire and let the reader realize and appreciate the wor
 > Old HWUI pre-skia would only re-sharpen glyphs in binned buckets. So it was like a hybrid of the offscreen layer & the 28+ behavior. For small changes (<15% iirc), it would prefer to use an existing rasterized glyph from the cache (so similar to the layer scaling quality, but without actually paying the cost of an offscreen buffer). If the font scaled beyond that, then it'd re-rasterize the glyph to sharpen it up.
 
 > This was done for performance reasons, but this doc seems like maybe it's worth doing for quality reasons, too.
+
+{% include blueskyComments.html uri="https://bsky.app/profile/halilibo.com/post/3llmzbuzuhs2d" %}

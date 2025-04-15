@@ -17,7 +17,7 @@ Wear OS team weren't the first ones to run into this issue on an Android based p
 
 Eventually my investigation turned into an internal _research_ document that I've been referencing regularly for the past 2 years. At the time, this work also paved the way for one dedicated API ([TextMotion](https://developer.android.com/develop/ui/compose/animation/quick-guide#animate-text-scale)) and sped up the development of another ([CompositingStrategy](https://developer.android.com/develop/ui/compose/graphics/draw/modifiers#compositing-strategy)). 
 
-This post is just the publication of that document without much editorial input. 
+This post is just the publication of that document without much editorial input.
 
 - I had to remove some internal links. 
 - I purposefully chose to get rid of design document elements. That part is not interesting.
@@ -34,7 +34,7 @@ Now, let's get into it.
 
 # Jittery Text Scale Animations
 
-**Problem**: Compose Text looks jittery when a graphicsLayer scale animation is applied on it. 
+**Problem**: Compose Text looks jittery when a `graphicsLayer` scale animation is applied on it. 
 
 This problem is not isolated to Compose though. Same problem was first reported for TextView in [an internal issue link]. [A teammate] first proposed to use `LINEAR_TEXT_FLAG`, maybe enabling it by default on Compose. Later, Wear OS picker composable which scales the text when it’s scrolled vertically brought the issue forward. The problem looked to be reproducible upon closer inspection in Compose UI on a phone since Compose for Wear OS does not have a separate text layout/render engine. 
 
@@ -57,7 +57,7 @@ Text scale animations are susceptible to jittery font issues if the right flags 
 
 There are many properties regarding fonts, graphics layering, text positioning, anti-aliasing, etc. that affect the final rendered text on the screen. This issue, like many rendering issues in Text, stems from how rasterization is done and scaled. 
 
-Glyphs get placed at whole or fractional pixel positions according to font metrics and the mentioned paint features. Scaling gets applied on an already finalized text layout, which brings us to the root issue: the linearity of text.  
+Glyphs get placed at whole or fractional pixel positions according to font metrics and the mentioned paint features. Scaling gets applied on an already finalized text layout, which brings us to the root issue: the linearity of text.
 
 I’ll just quote Behdad because he is one of the best people who can explain linearity vs non-linearity.
 
@@ -67,7 +67,7 @@ I’ll just quote Behdad because he is one of the best people who can explain li
 
 Basically, text rendering is an analog process that happens on a theoretical canvas. The majority of font metrics are subject to be calculated at fractional values when the canvas is arbitrarily scaled. Hence, Skia and Android Paint classes provide flags for subpixel positioning, [line metrics](https://freetype.org/freetype2/docs/glyphs/glyphs-3.html), baseline snapping(Android excluded, only Skia) and [font hinting](https://en.wikipedia.org/wiki/Font_hinting) that decide whether to use whole or rational numbers to place glyphs on this theoretical canvas. 
 
-Some of these properties violate the linearity of text, which affects how humans perceive scaling animation. 
+Some of these properties violate the linearity of text, which affects how humans perceive scaling animation.
 
 ### Scale vs Text Size
 
@@ -79,7 +79,7 @@ The second method is scaling the `fontSize` parameter by converting an animating
 
 ### Flags and Hinting
 
-`LINEAR_TEXT_FLAG`, `SUBPIXEL_TEXT_FLAG`, and `setHinting` in Paint class directly affect how glyphs are shaped, placed, and positioned on a line. 
+`LINEAR_TEXT_FLAG`, `SUBPIXEL_TEXT_FLAG`, and `setHinting` in `Paint` class directly affect how glyphs are shaped, placed, and positioned on a line. 
 
 Their effect becomes more negligible as DPI increases. However, text animations using either `fontSize` or `graphicsLayer` scaling make it easier to notice the difference even in high DPI screens due to the human factor. 
 
@@ -91,7 +91,7 @@ From Wikipedia:
 
 > Font hinting (also known as instructing) is the use of mathematical instructions to adjust the display of an outline font so that it lines up with a rasterized grid. At low screen resolutions, hinting is critical for producing clear, legible text.
 
-Font Hinting might remind you of 9-patch drawables. They are special bitmaps that define an image in 9 automatically scalable parts so that resizing the image won’t ruin the corners and edges. Similarly, font hinting describes how to scale a glyph to a non-predefined target size e.g. `16.7`. 
+Font Hinting might remind you of 9-patch drawables. They are special bitmaps that define an image in 9 automatically scalable parts so that resizing the image won’t ruin the corners and edges. Similarly, font hinting describes how to scale a glyph to a non-predefined target size e.g. `16.7`.
 
 Hinting is one of many features that instruct text shaping engines to put glyphs onto a pixel and not use subpixel values while reporting final text layout. This behavior violates the linearity of text, meaning that scaling the text while hinting is enabled probably results in dancing glyphs on the screen. 
 
@@ -102,8 +102,8 @@ Hinting is one of many features that instruct text shaping engines to put glyphs
       <th style="width:33%">Enabled</th>
       <th style="width:33%">Diff</th>
     </tr>
-<tr>
-<td><img src="/assets/images/hinting-disabled-qwerty.png" style="width:100%"/></td>
+    <tr>
+      <td><img src="/assets/images/hinting-disabled-qwerty.png" style="width:100%"/></td>
 <td><img src="/assets/images/hinting-enabled-qwerty.png" style="width:100%"/></td>
 <td><img src="/assets/images/hinting-diff-qwerty.png" style="width:100%"/></td>
 </tr>
@@ -112,13 +112,12 @@ Hinting is one of many features that instruct text shaping engines to put glyphs
 <td><img src="/assets/images/jittery-text/image25.png" style="width:100%"/></td>
 <td>
 <p><b>API 23</b></p>
-
 <p>
 At this API level hinting is always enabled for some reason. Setting it through AndroidTextPaint does not seem to have an effect.
 </p>
 
 <p>
-I believe this is due to the fact that LINEAR_TEXT has been disabled after Lollipop(21) and was re-enabled with Pie(28).
+I believe this is due to the fact that `LINEAR_TEXT` has been disabled after Lollipop(21) and was re-enabled with Pie(28).
 </p>
 </td>
 </tr>
@@ -245,7 +244,7 @@ Not surprisingly, subpixel positioning’s effect diminishes as screen DPI incre
     <th style="width:33%;">Subpixel On</th>
     <th style="width:33%;">Diff</th>
   </tr>
-  <tr>
+    <tr>
     <td>XHdpi Wear OS (2.0, 320)</td>
     <td><img src="/assets/images/jittery-text/image35.png" style="width:100%"/></td>
     <td><img src="/assets/images/jittery-text/image15.png" style="width:100%"/></td>
@@ -288,17 +287,17 @@ We have talked about 3 levers that configure how glyphs are placed and rendered 
   <tbody>
   <tr>
     <td>Nothing</td>
-    <td><img src="/assets/images/jittery-text/image1.gif" style="width:100%"/></td>
+      <td><img src="/assets/images/jittery-text/image1.gif" style="width:100%"/></td>
     <td><img src="/assets/images/jittery-text/image28.gif" style="width:100%"/></td>
-    <td>No hinting, no flags. As expected both animations suffer. GraphicsLayer based scaling has jittery font issue, font size does not scale well without linearity.</td>
+      <td>No hinting, no flags. As expected both animations suffer. `GraphicsLayer` based scaling has jittery font issue, font size does not scale well without linearity.</td>
   </tr>
   <tr>
     <td><p>Hinting (Default behavior)</p><p>setHinting(true)</p></td>
-    <td><img src="/assets/images/jittery-text/image7.gif" style="width:100%"/></td>
+      <td><img src="/assets/images/jittery-text/image7.gif" style="width:100%"/></td>
     <td><img src="/assets/images/jittery-text/image41.gif" style="width:100%"/></td>
-    <td>GraphicsLayer does not change much compared to the “Nothing” option. Font size scaling gets  much worse. Hinting is clearly non-linear.</td>
+      <td>`GraphicsLayer` does not change much compared to the “Nothing” option. Font size scaling gets  much worse. Hinting is clearly non-linear.</td>
   </tr>
-  <tr>
+    <tr>
     <td><p>Linear</p><p>LINEAR_TEXT_FLAG</p></td>
     <td><img src="/assets/images/jittery-text/image48.gif" style="width:100%"/></td>
     <td><img src="/assets/images/jittery-text/image3.gif" style="width:100%"/></td>
@@ -306,7 +305,7 @@ We have talked about 3 levers that configure how glyphs are placed and rendered 
   </tr>
   <tr>
     <td><p>Subpixel</p><p>SUBPIXEL_TEXT_FLAG</p></td>
-    <td><img src="/assets/images/jittery-text/image13.gif" style="width:100%"/></td>
+      <td><img src="/assets/images/jittery-text/image13.gif" style="width:100%"/></td>
     <td><img src="/assets/images/jittery-text/image31.gif" style="width:100%"/></td>
     <td>GraphicsLayer animation looks much better now. Only jittering happens in vertical axis since we do not have access to disabling baseline snapping. Font size animation returns back to the normal non-linear behavior</td>
   </tr>
@@ -330,9 +329,9 @@ We have talked about 3 levers that configure how glyphs are placed and rendered 
 modifier = Modifier
     .graphicsLayer {
         scaleX = scale
-        scaleY = scale
+            scaleY = scale
         // alpha = 0.99f // Not necessary anymore
-        compositingStrategy = CompositingStrategy.Always
+        compositingStrategy = CompositingStrategy.Offscreen
     }
 ```
 
@@ -410,7 +409,7 @@ I'm cutting out this part largely because it gets kinda boring and basically boi
 
 #### Option 1: Use the new CompositingStrategy
 
-> `CompositingStrategy.Always` is acceptable if the rendered text is only scaled between 0.8-1.2 range. Anything above or below makes the text look very blurry or simply unreadable. It solves the problem that WearOS is facing at the moment with the Picker composable.
+> `CompositingStrategy.Offscreen` is acceptable if the rendered text is only scaled between 0.8-1.2 range. Anything above or below makes the text look very blurry or simply unreadable. It solves the problem that WearOS is facing at the moment with the Picker composable.
 
 <table>
   <tr>
@@ -421,7 +420,7 @@ I'm cutting out this part largely because it gets kinda boring and basically boi
 
 #### Option 2: Simplified TextMotion API
 
-In this option we propose a very simplified API on Compose side that is called `TextMotion`. We think that there aren't many configuration options that make sense as `TextPaint` flags. The ones we have uncovered are either for Static or Animated text. 
+In this option we propose a very simplified API on Compose side that is called `TextMotion`. We think that there aren't many configuration options that make sense as `TextPaint` flags. The ones we have uncovered are either for Static or Animated text.
 
 - `TextMotion.Static` enables hinting, disables linearity and subpixel positioning.
 - `TextMotion.Animated` is the exact opposite. 
